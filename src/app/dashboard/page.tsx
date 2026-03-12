@@ -1,5 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
-import prisma from '@/lib/prisma'
+// import prisma from '@/lib/prisma' (Removing broken prisma import)
 import { redirect } from 'next/navigation'
 import { Hotel, Plane, Calendar, CheckCircle, Clock, XCircle, FileText, Download } from 'lucide-react'
 import Link from 'next/link'
@@ -7,43 +7,50 @@ import Link from 'next/link'
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: { bookingId?: string; status?: string }
+  searchParams: Promise<{ bookingId?: string; status?: string }>
 }) {
+  const params = await searchParams;
   const supabase = await createClient()
+
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
     redirect('/login')
   }
 
-  // Find the internal user to get their bookings
-  const dbUser = await prisma.user.findUnique({
-    where: { supabaseUid: user.id },
-    include: {
-      bookings: {
-        orderBy: { createdAt: 'desc' },
-        include: {
-          hotelBooking: true,
-          invoice: true,
-        }
-      }
-    }
-  })
+  // Find the internal user to get their bookings using Supabase instead of Prisma
+  const { data: dbUser, error: userError } = await supabase
+    .from('users')
+    .select(`
+      *,
+      bookings (
+        *,
+        hotel_bookings (*)
+      )
+    `)
+    .eq('supabaseUid', user.id)
+    .single()
 
-  if (!dbUser) {
+  if (userError || !dbUser) {
     // If user exists in Supabase but not in our DB, they might need to be synced.
-    // This could happen if they just logged in via Google but didn't go through our login/signup action.
     redirect('/')
   }
 
-  const { bookings } = dbUser
+  // Map the join results to match the expected format (Supabase returns arrays for joins)
+  const bookings = (dbUser.bookings || []).map((b: any) => ({
+    ...b,
+    hotelBooking: b.hotel_bookings?.[0] || null,
+    totalAmount: b.totalAmount || 0,
+    createdAt: b.created_at || b.createdAt
+  })).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-6xl mx-auto px-4">
         
         {/* Success Alert */}
-        {searchParams.status === 'success' && (
+        {params.status === 'success' && (
           <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-6 rounded-r-xl mb-12 flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
             <div className="bg-green-500 p-3 rounded-full text-white">
               <CheckCircle size={32} />

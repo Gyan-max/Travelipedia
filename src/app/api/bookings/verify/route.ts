@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import crypto from 'crypto'
-import prisma from '@/lib/prisma'
+import { createClient } from '@/utils/supabase/server'
 
 export async function POST(request: Request) {
   try {
@@ -17,17 +17,30 @@ export async function POST(request: Request) {
     }
 
     // 2. Update Booking Status in DB
-    const updatedBooking = await prisma.booking.update({
-      where: { id: bookingId },
-      data: {
+    const supabase = await createClient()
+    const { data: updatedBookingRaw, error: updateError } = await supabase
+      .from('bookings')
+      .update({
         status: 'CONFIRMED',
         razorpayPaymentId: razorpay_payment_id,
-      },
-      include: {
-        hotelBooking: true,
-        user: true
-      }
-    })
+      })
+      .eq('id', bookingId)
+      .select('*, hotel_bookings(*), users(*)')
+      .single()
+
+    if (updateError || !updatedBookingRaw) {
+      throw new Error(`Failed to update booking: ${updateError.message}`)
+    }
+
+    // Map data for email/voucher
+    const userRelation = Array.isArray(updatedBookingRaw.users) ? updatedBookingRaw.users[0] : updatedBookingRaw.users
+    const hotelRelation = Array.isArray(updatedBookingRaw.hotel_bookings) ? updatedBookingRaw.hotel_bookings[0] : updatedBookingRaw.hotel_bookings
+
+    const updatedBooking = {
+      ...updatedBookingRaw,
+      user: userRelation,
+      hotelBooking: hotelRelation
+    }
 
     // 3. Generate PDF and Send Email
     try {

@@ -1,12 +1,36 @@
 import Link from 'next/link'
 import { signup } from '@/app/auth/actions'
+import Image from 'next/image'
+import bgImage from '../../../public/bg-image.avif'
 
-export default function RegisterPage() {
+
+export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ message?: string }> }) {
+  const params = await searchParams;
+
   return (
-    <div className="flex-1 flex flex-col w-full px-8 sm:max-w-md justify-center gap-2 mx-auto min-h-[calc(100vh-64px)]">
+    <div className="relative min-h-[calc(100vh-64px)] flex flex-col items-center justify-center p-4">
+      {/* Background Image - Covers Whole Page */}
+      <div className="fixed inset-0 z-0">
+        <Image
+          src={bgImage}
+          alt="Travel Background"
+          placeholder="blur"
+          fill
+          priority
+          className="object-cover"
+        />
+        <div className="absolute inset-0 bg-black/40"></div>
+      </div>
+
+
+
+
+
+
+
       <Link
         href="/"
-        className="absolute left-8 top-24 py-2 px-4 rounded-md no-underline text-foreground bg-btn-background hover:bg-btn-background-hover flex items-center group text-sm"
+        className="absolute left-8 top-8 py-2 px-4 rounded-md no-underline text-white bg-white/10 hover:bg-white/20 backdrop-blur-md flex items-center group text-sm transition-all z-20 border border-white/20"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -22,57 +46,75 @@ export default function RegisterPage() {
         >
           <polyline points="15 18 9 12 15 6" />
         </svg>{' '}
-        Back
+        Back to Home
       </Link>
 
-      <form className="animate-in flex-1 flex flex-col w-full justify-center gap-2 text-foreground">
-        <h1 className="text-3xl font-bold mb-6">Create Account</h1>
-        
-        <label className="text-md" htmlFor="fullName">
-          Full Name
-        </label>
-        <input
-          className="rounded-md px-4 py-2 bg-inherit border mb-6"
-          name="fullName"
-          placeholder="John Doe"
-          required
-        />
+      <form
+        action={signup}
+        className="relative z-10 animate-in flex flex-col w-full px-8 sm:max-w-md justify-center gap-2 text-white bg-white/10 backdrop-blur-xl p-10 rounded-2xl border border-white/20 shadow-2xl my-8"
+      >
+        <div className="mb-8 text-center">
+          <h1 className="text-4xl font-black mb-2">Create Account</h1>
+          <p className="text-white/60">Join Travelipedia today</p>
+        </div>
 
-        <label className="text-md" htmlFor="email">
-          Email
-        </label>
-        <input
-          className="rounded-md px-4 py-2 bg-inherit border mb-6"
-          name="email"
-          placeholder="you@example.com"
-          required
-        />
-        
-        <label className="text-md" htmlFor="password">
-          Password
-        </label>
-        <input
-          className="rounded-md px-4 py-2 bg-inherit border mb-6"
-          type="password"
-          name="password"
-          placeholder="••••••••"
-          required
-        />
-        
+        <div className="flex flex-col gap-1 mb-4">
+          <label className="text-sm font-bold uppercase tracking-wider text-white/70" htmlFor="fullName">
+            Full Name
+          </label>
+          <input
+            className="rounded-xl px-4 py-3 bg-white/10 border border-white/10 text-white placeholder-white/30 focus:ring-2 focus:ring-blue-500 outline-none transition-all focus:bg-white/20"
+            name="fullName"
+            placeholder="John Doe"
+            required
+          />
+        </div>
+
+        <div className="flex flex-col gap-1 mb-4">
+          <label className="text-sm font-bold uppercase tracking-wider text-white/70" htmlFor="email">
+            Email Address
+          </label>
+          <input
+            className="rounded-xl px-4 py-3 bg-white/10 border border-white/10 text-white placeholder-white/30 focus:ring-2 focus:ring-blue-500 outline-none transition-all focus:bg-white/20"
+            name="email"
+            placeholder="you@example.com"
+            required
+          />
+        </div>
+
+        <div className="flex flex-col gap-1 mb-6">
+          <label className="text-sm font-bold uppercase tracking-wider text-white/70" htmlFor="password">
+            Password
+          </label>
+          <input
+            className="rounded-xl px-4 py-3 bg-white/10 border border-white/10 text-white placeholder-white/30 focus:ring-2 focus:ring-blue-500 outline-none transition-all focus:bg-white/20"
+            type="password"
+            name="password"
+            placeholder="••••••••"
+            required
+          />
+        </div>
+
         <button
-          formAction={signup}
-          className="bg-blue-600 rounded-md px-4 py-2 text-white font-semibold mb-2 hover:bg-blue-700 transition"
+          className="bg-blue-600 rounded-xl px-4 py-4 text-white font-bold text-lg mb-4 hover:bg-blue-700 transition-all transform active:scale-95 shadow-lg shadow-blue-500/20"
         >
           Sign Up
         </button>
-        
-        <p className="text-sm text-center mt-4">
+
+        {params?.message && (
+          <p className="mt-2 p-4 bg-blue-500/20 border border-blue-500/30 text-blue-100 text-center rounded-xl backdrop-blur-md">
+            {params.message}
+          </p>
+        )}
+
+        <p className="text-sm text-center mt-6 text-white/60">
           Already have an account?{' '}
-          <Link href="/login" className="text-blue-600 hover:underline font-semibold">
+          <Link href="/login" className="text-blue-400 hover:text-blue-300 underline font-bold transition-colors">
             Log In
           </Link>
         </p>
       </form>
     </div>
   )
+
 }

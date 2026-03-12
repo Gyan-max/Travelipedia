@@ -32,7 +32,7 @@ export default function SearchHotels() {
           <input
             type="text"
             placeholder="Where are you going?"
-            className="border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500 bg-white"
             value={city}
             onChange={(e) => setCity(e.target.value)}
             required

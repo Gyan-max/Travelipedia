@@ -2,8 +2,10 @@ import { tboClient } from '@/lib/tbo'
 import { MapPin, Star, CheckCircle2 } from 'lucide-react'
 import BookingButton from '@/components/BookingButton'
 
-export default async function HotelDetailsPage({ params }: { params: { id: string } }) {
-  const hotel = await tboClient.getHotelDetails(params.id)
+export default async function HotelDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  const hotel = await tboClient.getHotelDetails(resolvedParams.id)
+
 
   // Mock booking data (normally from search params or session)
   const bookingData = {

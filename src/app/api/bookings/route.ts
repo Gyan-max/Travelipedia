@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { razorpay } from '@/lib/razorpay'
-import prisma from '@/lib/prisma'
 import { createClient } from '@/utils/supabase/server'
 
 export async function POST(request: Request) {
@@ -22,37 +21,53 @@ export async function POST(request: Request) {
     })
 
     // 2. Find internal DB user
-    const dbUser = await prisma.user.findUnique({
-      where: { supabaseUid: user.id },
-    })
+    const { data: dbUser, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('supabaseUid', user.id)
+      .single()
 
-    if (!dbUser) {
+    if (userError || !dbUser) {
       return NextResponse.json({ error: 'User not found in database' }, { status: 404 })
     }
 
     // 3. Create Pending Booking in DB
-    const booking = await prisma.booking.create({
-      data: {
+    const { data: booking, error: bookingError } = await supabase
+      .from('bookings')
+      .insert({
         userId: dbUser.id,
         type,
         status: 'PENDING',
         totalAmount: amount,
         razorpayOrderId: order.id,
-        ...(type === 'HOTEL' && {
-          hotelBooking: {
-            create: {
-              hotelName: bookingData.hotelName,
-              hotelCode: bookingData.hotelCode,
-              checkIn: new Date(bookingData.checkIn),
-              checkOut: new Date(bookingData.checkOut),
-              rooms: bookingData.rooms,
-              guests: bookingData.guests,
-              city: bookingData.city,
-            },
-          },
-        }),
-      },
-    })
+      })
+      .select()
+      .single()
+
+    if (bookingError) {
+      throw new Error(`Failed to create booking: ${bookingError.message}`)
+    }
+
+    // 4. Create Hotel Booking if applicable
+    if (type === 'HOTEL') {
+      const { error: hotelError } = await supabase
+        .from('hotel_bookings')
+        .insert({
+          bookingId: booking.id,
+          hotelName: bookingData.hotelName,
+          hotelCode: bookingData.hotelCode,
+          checkIn: new Date(bookingData.checkIn),
+          checkOut: new Date(bookingData.checkOut),
+          rooms: bookingData.rooms,
+          guests: bookingData.guests,
+          city: bookingData.city,
+        })
+
+      if (hotelError) {
+        // Optional: Rollback booking or handle error
+        console.error('Hotel Booking Error:', hotelError)
+      }
+    }
 
     return NextResponse.json({ order, bookingId: booking.id })
   } catch (error: any) {
